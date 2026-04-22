@@ -6,12 +6,18 @@ import { useState } from "react";
 import { FileRejection } from "react-dropzone";
 import { ThreeDots } from "react-loader-spinner";
 import { FaTrashAlt } from "react-icons/fa";
-import { FaDownload } from "react-icons/fa";
 import { XCircleIcon } from "@heroicons/react/20/solid";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { SelectMenu } from "@/app/selectmenu";
 import { ImageAreaProps } from "@/types";
+import { models } from "@/config/models";
+import { ModelParameters } from "./components/ModelParameters";
+import { AIModel, ModelValues } from "../types";
+import { useHistory } from './context/HistoryContext';
+import { RecentHistory } from './components/RecentHistory';
+import { ImageWithActions } from "./components/ImageWithActions";
+import { ExampleImages } from "./components/ExampleImages";
 
 type ErrorNotificationProps = {
   errorMessage: string;
@@ -37,8 +43,54 @@ type ImageOutputProps = ImageAreaProps & {
   downloadOutputImage(): void;
 };
 
-const themes = ["Modern", "Vintage", "Minimalist", "Professional"];
-const rooms = ["Living Room", "Dining Room", "Bedroom", "Bathroom", "Office"];
+const themes = [
+  "Modern",
+  "Vintage",
+  "Minimalist",
+  "Professional",
+  "Industrial",
+  "Scandinavian",
+  "Bohemian",
+  "Contemporary",
+  "Traditional",
+  "Mid-Century Modern",
+  "Coastal",
+  "Rustic",
+  "Art Deco",
+  "Japanese Zen",
+  "Mediterranean"
+];
+
+const rooms = [
+  "Living Room",
+  "Dining Room",
+  "Bedroom",
+  "Bathroom",
+  "Office",
+  "Kitchen",
+  "Master Bedroom",
+  "Kids Room",
+  "Home Theater",
+  "Study Room",
+  "Entryway",
+  "Walk-in Closet",
+  "Game Room",
+  "Home Gym",
+  "Laundry Room",
+  "Patio",
+  "Garden",
+  "Art Studio",
+  "Music Room",
+  "Home Office",
+  "Guest Room",
+  "Nursery",
+  "Home Spa",
+  "Home Bar",
+  "Home Library",
+  "Home Theater",
+  "Home Gym",
+  "Home Spa"
+];
 
 const acceptedFileTypes = {
   "image/jpeg": [".jpeg", ".jpg", ".png"],
@@ -112,6 +164,8 @@ function ActionPanel({ isLoading, submitImage }: ActionPanelProps) {
  * @param {ImageOutputProps} props The component props
  */
 function ImageOutput(props: ImageOutputProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <section className="relative min-h-[206px] w-full">
       <button
@@ -144,23 +198,15 @@ function ImageOutput(props: ImageOutputProps) {
           </>
         ) : null}
 
-        {!props.loading && props.outputImage ? (
-          <img
-            src={props.outputImage}
-            alt="output"
-            className="h-full w-full object-cover"
+        {!props.loading && props.outputImage && (
+          <ImageWithActions
+            imageUrl={props.outputImage}
+            alt="Generated output"
+            filename="output.png"
+            containerClassName="h-full"
           />
-        ) : null}
+        )}
       </button>
-
-      {!props.loading && props.outputImage ? (
-        <button
-          onClick={props.downloadOutputImage}
-          className="group absolute right-1 top-1 bg-yellow-500 p-2 text-black"
-        >
-          <FaDownload className="h-4 w-4 duration-300 group-hover:scale-110" />
-        </button>
-      ) : null}
     </section>
   );
 }
@@ -234,12 +280,17 @@ function ImageDropzone(
  */
 export default function HomePage() {
   const [outputImage, setOutputImage] = useState<string | null>(null);
+  const [maskImage, setMaskImage] = useState<string | null>(null);
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(themes[0]);
   const [room, setRoom] = useState<string>(rooms[0]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
   const [file, setFile] = useState<File | null>(null);
+  const [selectedModel, setSelectedModel] = useState<AIModel>(models[1]);
+  const [modelValues, setModelValues] = useState<ModelValues>({});
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
+  const { historyItems, addHistoryItem } = useHistory();
 
   /**
    * Handle the image drop event
@@ -328,12 +379,20 @@ export default function HomePage() {
 
     setLoading(true);
 
+    const requestBody = {
+      modelId: selectedModel.id,
+      image: base64Image,
+      theme,
+      room,
+      parameters: modelValues
+    };
+
     const response = await fetch("/api/replicate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ image: base64Image, theme, room }),
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
@@ -345,54 +404,207 @@ export default function HomePage() {
       return;
     }
 
-    // Output returns an array of two images
-    // Here we show the second image
-    setOutputImage(result.output[1]);
+    console.log("🚀 ~ result:", result)
+    const processedOutput = selectedModel.preprocessOutput(result);
+    setOutputImage(processedOutput.output);
+    setMaskImage(processedOutput.mask || null);
     setLoading(false);
+
+    console.log("🚀 ~ submitImage ~ processedOutput:", processedOutput)
+    // Add to history
+    if (base64Image && processedOutput.output) {
+      addHistoryItem({
+        inputImage: base64Image,
+        outputImage: processedOutput.output,
+        roomType: room,
+        theme,
+      });
+    }
   }
 
-  return (
-    <main className="flex min-h-screen flex-col py-10 lg:pl-72">
-      {error ? <ErrorNotification errorMessage={error} /> : null}
-      <ActionPanel isLoading={loading} submitImage={submitImage} />
+  function handleParameterChange(name: string, value: any) {
+    setModelValues((prev: ModelValues) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
 
-      <section className="mx-4 mt-9 flex w-fit flex-col space-y-8 lg:mx-6 lg:flex-row lg:space-x-8 lg:space-y-0 xl:mx-8">
-        <SelectMenu
-          label="Model"
-          options={themes}
-          selected={theme}
-          onChange={setTheme}
-        />
-        <SelectMenu
-          label="Room type"
-          options={rooms}
-          selected={room}
-          onChange={setRoom}
-        />
+  const handleExampleImageSelect = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const filename = imageUrl.split('/').pop() ?? 'example.jpg';
+      const file = new File([blob], filename, { type: 'image/jpeg' });
+      
+      setFile(file);
+      convertImageToBase64(file);
+    } catch (error) {
+      console.error('Error loading example image:', error);
+      setError('Failed to load example image');
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const imageUrl = e.dataTransfer.getData('text/plain');
+    console.log("🚀 ~ handleDrop ~ imageUrl:", imageUrl)
+    if (imageUrl.startsWith('/assets/')) {
+      handleExampleImageSelect(imageUrl);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col bg-black py-10 lg:pl-72">
+      {error ? <ErrorNotification errorMessage={error} /> : null}
+
+      <section className="mx-4 lg:mx-6 xl:mx-8">
+        <div className="mb-6">
+          <h3 className="text-base font-semibold leading-6 text-gray-300 lg:text-xl">
+            Upload a photo or image
+          </h3>
+          <div className="mt-2 max-w-xl text-sm text-gray-500">
+            <p>
+              Upload an image of a room and let our AI generate a new design.
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h4 className="mb-2 text-sm font-medium text-gray-400">
+            Or choose from our example images:
+          </h4>
+          <ExampleImages onImageSelect={handleExampleImageSelect} />
+        </div>
+
+        <div className="mt-4 rounded-md bg-yellow-50 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm font-medium text-yellow-800">
+                For better results, please use JPG or JPEG images. Some models may not work well with other formats.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          className="mt-6"
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          {!file && selectedModel.requiresImage ? (
+            <ImageDropzone
+              title={`Drag 'n drop your image here or click to upload`}
+              onImageDrop={onImageDrop}
+              icon={PhotoIcon}
+            />
+          ) : file ? (
+            <UploadedImage
+              image={file}
+              removeImage={removeImage}
+              file={{ name: file.name, size: fileSize(file.size) }}
+            />
+          ) : null}
+        </div>
       </section>
 
-      <section className="mt-10 grid flex-1 gap-6 px-4 lg:px-6 xl:grid-cols-2 xl:gap-8 xl:px-8">
-        {!file ? (
-          <ImageDropzone
-            title={`Drag 'n drop your image here or click to upload`}
-            onImageDrop={onImageDrop}
-            icon={PhotoIcon}
+      <section className="mx-4 mt-9 space-y-4 lg:mx-6 xl:mx-8">
+        <div className="w-full">
+          <SelectMenu
+            label="Model"
+            options={models.map(m => m.name)}
+            selected={selectedModel.name}
+            onChange={(name) => {
+              const model = models.find(m => m.name === name);
+              if (model) {
+                setSelectedModel(model);
+                setModelValues({}); // Reset values when model changes
+                setShowAdvancedOptions(false); // Hide advanced options when model changes
+              }
+            }}
           />
-        ) : (
-          <UploadedImage
-            image={file}
-            removeImage={removeImage}
-            file={{ name: file.name, size: fileSize(file.size) }}
+        </div>
+
+        {selectedModel.parameters.length > 0 && (
+          <div className="mt-6">
+            <ModelParameters
+              parameters={selectedModel.parameters}
+              values={modelValues}
+              onChange={handleParameterChange}
+              showAdvanced={showAdvancedOptions}
+              onToggleAdvanced={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            />
+          </div>
+        )}
+
+        {!showAdvancedOptions && (
+          <div className="mt-6 flex flex-row gap-2 sm:grid-cols-2">
+            {selectedModel.requiresRoomType && (
+              <SelectMenu
+                label="Room type"
+                options={rooms}
+                selected={room}
+                onChange={setRoom}
+              />
+            )}
+            {selectedModel.requiresStyle && (
+              <SelectMenu
+                label="Style"
+                options={themes}
+                selected={theme}
+                onChange={setTheme}
+              />
+            )}
+          </div>
+        )}
+
+        <div className="mt-10 flex justify-start">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={submitImage}
+            className={`${
+              loading
+                ? "cursor-not-allowed bg-indigo-300 text-gray-300 hover:bg-indigo-300 hover:text-gray-300"
+                : "bg-indigo-600 text-white hover:bg-indigo-500"
+            } inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 lg:px-3.5 lg:py-2.5`}
+          >
+            Design this room
+            <SparklesIcon className="ml-2 h-4 w-4 text-gray-300" />
+          </button>
+        </div>
+      </section>
+
+      <section className="mx-4 mt-10 lg:mx-6 xl:mx-8">
+        {(loading || outputImage) && (
+          <ImageOutput
+            title={`AI-generated output goes here`}
+            downloadOutputImage={downloadOutputImage}
+            outputImage={outputImage}
+            icon={SparklesIcon}
+            loading={loading}
           />
         )}
 
-        <ImageOutput
-          title={`AI-generated output goes here`}
-          downloadOutputImage={downloadOutputImage}
-          outputImage={outputImage}
-          icon={SparklesIcon}
-          loading={loading}
-        />
+        {selectedModel.hasMask && outputImage && (
+          <div className="mt-6">
+            <ImageOutput
+              title={`AI-generated mask output`}
+              downloadOutputImage={() => saveAs(maskImage as string, "mask.png")}
+              outputImage={maskImage}
+              icon={SparklesIcon}
+              loading={loading}
+            />
+          </div>
+        )}
+      </section>
+
+      <section className="mx-4 mt-10 lg:mx-6 xl:mx-8">
+        <RecentHistory items={historyItems} />
       </section>
     </main>
   );

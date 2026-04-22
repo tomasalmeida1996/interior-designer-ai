@@ -1,48 +1,80 @@
-## Interior Designer AI
+# Interior Designer AI — Multi-Model
 
-![Interior design image](public/app-screenshot.png)
+Upload a photo of any room and let AI redesign it. Choose from three
+Replicate models depending on your speed/quality/cost needs.
 
-## How to use
+## Models
 
-### 1. Clone this project's repository
+| Model                                 | Cost/run | Speed  | Quality   |
+| ------------------------------------- | -------- | ------ | --------- |
+| Realistic Vision v3 (`adirik`)        | ~$0.007  | ~8s    | Good      |
+| RealVisXL v5 SDXL (`rocketdigitalai`) | ~$0.18   | ~2 min | Excellent |
+| FLUX Depth Pro (`black-forest-labs`)  | ~$0.05   | ~30s   | Excellent |
 
-In your Terminal app
+## Getting Started
 
-- Type `git clone git@github.com:siegblink/interior-designer-ai.git`
-- Or type `git clone https://github.com/siegblink/interior-designer-ai.git`
+### 1. Clone the repo
 
-### 2. Install the project dependencies
-
-Go to the project's directory
-
-- Type `cd interior-designer-ai`
-- Then, `npm install`
-
-### 3. Create an account at [replicate](https://replicate.com/)
-
-![create-account-in-replicate](public/create-account-in-replicate.png)
-
-### 4. Go to the _API tokens_ page within your replicate account
-
-![go-to-api-tokens](public/go-to-api-tokens.png)
-
-### 5. Create your API token and copy it
-
-![create-api-token](public/create-api-token.png)
-
-### 6. Rename the `.env.example` file to `.env.local`
-
-### 7. In `.env.local`, replace the placeholder _your_api_token_ with your API token
-
-```
-# Replace 'your-api-token' with your own API token from replicate
-REPLICATE_API_TOKEN=your_api_token
+```bash
+git clone https://github.com/your-username/interior-designer-ai.git
+cd interior-designer-ai
 ```
 
-### 8. Run the project
+### 2. Install dependencies
 
-Back in your Terminal in the project directory, type `npm run dev`
+```bash
+npm install
+```
 
-### 9. See the running application in your browser at `localhost:3000`
+### 3. Set up your Replicate API token
 
-![see-running-app](public/see-running-app.png)
+Rename `.env.example` to `.env.local` and add your token:
+
+```
+REPLICATE_API_TOKEN=your_token_here
+```
+
+Get a token at [replicate.com](https://replicate.com) — free tier available.
+
+### 4. Run locally
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## How to Use
+
+1. **Pick a model** — choose based on your speed/quality/budget preference
+2. **Configure your design** — use the dropdowns to set room type, style, lighting, palette, and materials
+3. **Upload a photo** — drag & drop or click to upload a JPEG/PNG under 5 MB
+4. **Generate** — review the assembled prompt, then click Generate
+5. **Download** — save the result with the download button
+
+## Adding a New Model
+
+Edit `lib/models.ts` — add one entry to `MODELS` with the model's Replicate ID,
+display metadata, and a `buildInput()` function that maps the shared params to
+that model's specific API schema. Nothing else needs to change.
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/replicate/route.ts   # Unified API route (all models)
+│   ├── page.tsx                 # Main UI
+│   └── layout.tsx
+├── lib/
+│   ├── models.ts                # Model registry
+│   └── prompt-config.ts         # Dropdown options + buildPrompt()
+├── .env.example
+└── README.md
+```
+
+## Stack
+
+- [Next.js 14](https://nextjs.org) — App Router
+- [Replicate](https://replicate.com) — AI model API
+- [Tailwind CSS](https://tailwindcss.com)
+- [react-dropzone](https://react-dropzone.js.org)
