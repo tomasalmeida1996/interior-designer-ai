@@ -36,25 +36,42 @@ export async function POST(request: Request) {
 
   // ── 2. Build the shared GenerateParams ───────────────────────────────
   // Support both the new flat params AND the legacy { theme, room, parameters } shape
-  const resolvedPrompt =
-    prompt ??
-    (theme && room
+  const fromThemeRoom =
+    theme && room
       ? `A ${theme} ${room} Editorial Style Photo, Symmetry, Straight On, ultra-detailed, ultra-realistic, award-winning, 4k`
-      : "");
+      : "";
+
+  const paramPrompt =
+    typeof parameters?.prompt === "string" && parameters.prompt.trim()
+      ? parameters.prompt
+      : undefined;
+
+  const resolvedPrompt =
+    (typeof prompt === "string" && prompt.trim() ? prompt : undefined) ??
+    paramPrompt ??
+    fromThemeRoom;
+
+  const isJagilley = modelId === "jagilley";
 
   const generateParams: GenerateParams = {
     image,
     prompt: resolvedPrompt,
     negativePrompt:
-      negativePrompt ?? parameters?.negative_prompt ?? DEFAULTS.negativePrompt,
+      negativePrompt ??
+      parameters?.negative_prompt ??
+      (isJagilley
+        ? "bad quality, low quality, blurry"
+        : DEFAULTS.negativePrompt),
     guidanceScale:
-      guidanceScale ?? parameters?.guidance_scale ?? DEFAULTS.guidanceScale,
+      guidanceScale ??
+      parameters?.guidance_scale ??
+      (isJagilley ? 7.5 : DEFAULTS.guidanceScale),
     promptStrength:
       promptStrength ?? parameters?.prompt_strength ?? DEFAULTS.promptStrength,
     numInferenceSteps:
       numInferenceSteps ??
       parameters?.num_inference_steps ??
-      DEFAULTS.numInferenceSteps,
+      (isJagilley ? 30 : DEFAULTS.numInferenceSteps),
   };
 
   // ── 3. Build model-specific input and run ────────────────────────────
@@ -89,9 +106,19 @@ export async function POST(request: Request) {
       imageUri = output as unknown as string;
     }
 
+    let maskUri: string | undefined;
+    if (
+      modelConfig.maskOutputIndex !== undefined &&
+      Array.isArray(output) &&
+      output[modelConfig.maskOutputIndex] != null
+    ) {
+      maskUri = output[modelConfig.maskOutputIndex] as string;
+    }
+
     return NextResponse.json(
       {
         output: imageUri,
+        ...(maskUri ? { mask: maskUri } : {}),
         modelId: modelConfig.id,
         modelName: modelConfig.name,
       },
@@ -99,6 +126,10 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("Error running model:", error);
-    return NextResponse.json({ error: "Error running model" }, { status: 500 });
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Error running model", detail },
+      { status: 500 }
+    );
   }
 }

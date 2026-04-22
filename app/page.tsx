@@ -12,7 +12,7 @@ import { SparklesIcon } from "@heroicons/react/24/outline";
 import { SelectMenu } from "@/app/selectmenu";
 import { ImageAreaProps } from "@/types";
 import { models } from "@/config/models";
-import { MODEL_LIST, MODELS, type ModelId } from "@/lib/models";
+import type { ModelId } from "@/lib/models";
 import { ROOMS, STYLES } from "@/lib/prompt-config";
 import { ModelParameters } from "./components/ModelParameters";
 import { AIModel, ModelValues } from "../types";
@@ -234,6 +234,9 @@ function ImageDropzone(
 /**
  * Display the home page
  */
+const defaultUiModel =
+  models.find((m) => m.apiModelId === "adirik") ?? models[0];
+
 export default function HomePage() {
   const [outputImage, setOutputImage] = useState<string | null>(null);
   const [maskImage, setMaskImage] = useState<string | null>(null);
@@ -243,8 +246,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
   const [file, setFile] = useState<File | null>(null);
-  const [selectedModel, setSelectedModel] = useState<AIModel>(models[1]);
-  const [modelId, setModelId] = useState<ModelId>("adirik");
+  const [selectedModel, setSelectedModel] = useState<AIModel>(defaultUiModel);
+  const [modelId, setModelId] = useState<ModelId>(defaultUiModel.apiModelId);
   const [modelValues, setModelValues] = useState<ModelValues>({});
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
@@ -362,9 +365,8 @@ export default function HomePage() {
       return;
     }
 
-    // The API now always returns a normalised { output: string }
     setOutputImage(result.output);
-    setMaskImage(null);
+    setMaskImage(typeof result.mask === "string" ? result.mask : null);
     setLoading(false);
 
     // Add to history
@@ -475,6 +477,7 @@ export default function HomePage() {
               const model = models.find((m) => m.name === name);
               if (model) {
                 setSelectedModel(model);
+                setModelId(model.apiModelId);
                 setModelValues({}); // Reset values when model changes
                 setShowAdvancedOptions(false); // Hide advanced options when model changes
               }

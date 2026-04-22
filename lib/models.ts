@@ -20,7 +20,7 @@ export const DEFAULTS: Omit<GenerateParams, "image" | "prompt"> = {
 };
 
 // ─── Model ID union type ──────────────────────────────────────────────────
-export type ModelId = "adirik" | "rocketdigital" | "flux-depth";
+export type ModelId = "jagilley" | "adirik" | "rocketdigital" | "flux-depth";
 
 // ─── Model config interface ───────────────────────────────────────────────
 export interface ModelConfig {
@@ -35,11 +35,41 @@ export interface ModelConfig {
   replicateModel: string;
   outputType: "single" | "array";
   outputIndex?: number;
+  /** When set and the run returns an array, this index is returned as `mask` from the API. */
+  maskOutputIndex?: number;
   buildInput(params: GenerateParams): Record<string, unknown>;
 }
 
 // ─── Model registry ───────────────────────────────────────────────────────
 export const MODELS: Record<ModelId, ModelConfig> = {
+  // 0. Jagilley — ControlNet Hough (mask + result)
+  jagilley: {
+    id: "jagilley",
+    name: "Jagilley Interior Designer",
+    description: "ControlNet Hough — includes structure mask in output",
+    badge: "Classic",
+    badgeColor: "emerald",
+    costPerRun: "~$0.02",
+    speed: "~30s",
+    quality: "Good",
+    replicateModel:
+      "jagilley/controlnet-hough:854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
+    outputType: "array",
+    outputIndex: 1,
+    maskOutputIndex: 0,
+    buildInput(params: GenerateParams): Record<string, unknown> {
+      return {
+        image: params.image,
+        prompt: params.prompt,
+        a_prompt:
+          "best quality, extremely detailed, photo from Pinterest, interior, cinematic photo, ultra-detailed, ultra-realistic, award-winning",
+        negative_prompt: params.negativePrompt,
+        guidance_scale: params.guidanceScale,
+        num_inference_steps: params.numInferenceSteps,
+      };
+    },
+  },
+
   // 1. Adirik — Realistic Vision v3 (SD1.5 + MLSD ControlNet)
   adirik: {
     id: "adirik",
@@ -50,7 +80,8 @@ export const MODELS: Record<ModelId, ModelConfig> = {
     costPerRun: "~$0.007",
     speed: "~8s",
     quality: "Good",
-    replicateModel: "adirik/interior-design",
+    replicateModel:
+      "adirik/interior-design:76604baddc85b1b4616e1c6475eca080da339c8875bd4996705440484a6eac38",
     outputType: "single",
     buildInput(params: GenerateParams): Record<string, unknown> {
       return {
@@ -74,7 +105,8 @@ export const MODELS: Record<ModelId, ModelConfig> = {
     costPerRun: "~$0.18",
     speed: "~2 min",
     quality: "Excellent",
-    replicateModel: "rocketdigitalai/interior-design-sdxl",
+    replicateModel:
+      "rocketdigitalai/interior-design-sdxl:a3c091059a25590ce2d5ea13651fab63f447f21760e50c358d4b850e844f59ee",
     outputType: "single",
     buildInput(params: GenerateParams): Record<string, unknown> {
       // Note: does NOT accept prompt_strength — omitted
@@ -84,6 +116,9 @@ export const MODELS: Record<ModelId, ModelConfig> = {
         negative_prompt: params.negativePrompt,
         guidance_scale: params.guidanceScale,
         num_inference_steps: params.numInferenceSteps,
+        promax_strength: 0.8,
+        depth_strength: 0.8,
+        refiner_strength: 0.4,
       };
     },
   },
@@ -98,18 +133,18 @@ export const MODELS: Record<ModelId, ModelConfig> = {
     costPerRun: "~$0.05",
     speed: "~30s",
     quality: "Excellent",
-    replicateModel: "black-forest-labs/flux-depth-pro",
+    replicateModel:
+      "black-forest-labs/flux-depth-pro:c86388b54d5d9eea8c9cfb70a7ee0d40a55c7a3010ecec8e14c21c9bd64d3af8",
     outputType: "single",
     buildInput(params: GenerateParams): Record<string, unknown> {
-      // Note: does NOT accept negative_prompt or prompt_strength — omitted
-      // Uses "guidance" instead of "guidance_scale", "steps" instead of "num_inference_steps"
+      // API expects control_image (not "image"); guidance + steps per schema
+      const steps = Math.min(50, Math.max(15, params.numInferenceSteps));
       return {
-        image: params.image,
+        control_image: params.image,
         prompt: params.prompt,
         guidance: params.guidanceScale,
-        steps: params.numInferenceSteps,
-        output_format: "webp",
-        output_quality: 90,
+        steps,
+        output_format: "jpg",
       };
     },
   },
