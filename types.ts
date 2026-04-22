@@ -1,6 +1,8 @@
+import type { ModelId } from "@/lib/models";
+
 export interface ModelParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean';
+  type: "string" | "number" | "boolean";
   label: string;
   description?: string;
   default?: string | number | boolean;
@@ -12,13 +14,15 @@ export interface ModelParameter {
 }
 
 export interface ModelOutput {
-//   input: string;
+  //   input: string;
   output: string;
   mask?: string;
 }
 
 export interface AIModel {
   id: string;
+  /** Key used by `/api/replicate` — must exist in `lib/models` `MODELS`. */
+  apiModelId: ModelId;
   name: string;
   description: string;
   parameters: ModelParameter[];
@@ -38,4 +42,4 @@ export interface ImageAreaProps {
 
 export interface ModelValues {
   [key: string]: any;
-} 
+}

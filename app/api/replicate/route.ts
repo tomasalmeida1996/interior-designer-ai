@@ -1,52 +1,134 @@
-import { NextResponse } from 'next/server';
-import Replicate from 'replicate';
-import { models } from '@/config/models';
+import { NextResponse } from "next/server";
+import Replicate from "replicate";
+import {
+  MODELS,
+  DEFAULTS,
+  type ModelId,
+  type GenerateParams,
+} from "@/lib/models";
 
 export async function POST(request: Request) {
-  // 1. Get request data (in JSON format) from the client
   const req = await request.json();
-  // console.log("🚀 ~ POST ~ req:", req)
 
-  const { modelId, image, theme, room, parameters } = req;
+  const {
+    modelId = "adirik",
+    image,
+    prompt,
+    negativePrompt,
+    guidanceScale,
+    promptStrength,
+    numInferenceSteps,
+    // Legacy fields — still accepted from the existing UI
+    theme,
+    room,
+    parameters,
+  } = req;
 
-  // Find the selected model
-  const selectedModel = models.find(m => m.id === modelId);
-  if (!selectedModel) {
+  // ── 1. Look up the model config ──────────────────────────────────────
+  const modelConfig = MODELS[modelId as ModelId];
+
+  if (!modelConfig) {
     return NextResponse.json(
-      { error: 'Invalid model ID' },
+      { error: `Unknown modelId "${modelId}"` },
       { status: 400 }
     );
   }
 
-  // 2. Initialize the replicate object with our Replicate API token
+  // ── 2. Build the shared GenerateParams ───────────────────────────────
+  // Support both the new flat params AND the legacy { theme, room, parameters } shape
+  const fromThemeRoom =
+    theme && room
+      ? `A ${theme} ${room} Editorial Style Photo, Symmetry, Straight On, ultra-detailed, ultra-realistic, award-winning, 4k`
+      : "";
+
+  const paramPrompt =
+    typeof parameters?.prompt === "string" && parameters.prompt.trim()
+      ? parameters.prompt
+      : undefined;
+
+  const resolvedPrompt =
+    (typeof prompt === "string" && prompt.trim() ? prompt : undefined) ??
+    paramPrompt ??
+    fromThemeRoom;
+
+  const isJagilley = modelId === "jagilley";
+
+  const generateParams: GenerateParams = {
+    image,
+    prompt: resolvedPrompt,
+    negativePrompt:
+      negativePrompt ??
+      parameters?.negative_prompt ??
+      (isJagilley
+        ? "bad quality, low quality, blurry"
+        : DEFAULTS.negativePrompt),
+    guidanceScale:
+      guidanceScale ??
+      parameters?.guidance_scale ??
+      (isJagilley ? 7.5 : DEFAULTS.guidanceScale),
+    promptStrength:
+      promptStrength ?? parameters?.prompt_strength ?? DEFAULTS.promptStrength,
+    numInferenceSteps:
+      numInferenceSteps ??
+      parameters?.num_inference_steps ??
+      (isJagilley ? 30 : DEFAULTS.numInferenceSteps),
+  };
+
+  // ── 3. Build model-specific input and run ────────────────────────────
+  const input = modelConfig.buildInput(generateParams);
+
   const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN as string,
   });
 
-  // 3. Preprocess the input using the model's preprocess function
-  const input = selectedModel.preprocessInput ? 
-    selectedModel.preprocessInput({ image, theme, room, parameters }) : 
-    { image, theme, room, ...parameters };
-
   try {
-    // 4. Run the model with the processed input
-    const output = await replicate.run(selectedModel.url as `${string}/${string}:${string}`, { input });
+    const output = await replicate.run(
+      modelConfig.replicateModel as `${string}/${string}:${string}`,
+      { input }
+    );
 
-    // 5. Check if the output is NULL then return error back to the client
     if (!output) {
-      console.log('No output from model');
       return NextResponse.json(
-        { error: 'No output from model' },
+        { error: "No output from model" },
         { status: 500 }
       );
     }
 
-    // 6. Return the output back to the client
-    return NextResponse.json({ output }, { status: 201 });
-  } catch (error) {
-    console.error('Error running model:', error);
+    // ── 4. Normalise output to a single image URI ────────────────────
+    let imageUri: string;
+
+    if (modelConfig.outputType === "array" && Array.isArray(output)) {
+      imageUri = output[modelConfig.outputIndex ?? 0];
+    } else if (Array.isArray(output)) {
+      // Safety: even if config says "single", handle unexpected arrays
+      imageUri = output[modelConfig.outputIndex ?? 0];
+    } else {
+      imageUri = output as unknown as string;
+    }
+
+    let maskUri: string | undefined;
+    if (
+      modelConfig.maskOutputIndex !== undefined &&
+      Array.isArray(output) &&
+      output[modelConfig.maskOutputIndex] != null
+    ) {
+      maskUri = output[modelConfig.maskOutputIndex] as string;
+    }
+
     return NextResponse.json(
-      { error: 'Error running model' },
+      {
+        output: imageUri,
+        ...(maskUri ? { mask: maskUri } : {}),
+        modelId: modelConfig.id,
+        modelName: modelConfig.name,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error running model:", error);
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Error running model", detail },
       { status: 500 }
     );
   }

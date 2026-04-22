@@ -12,10 +12,12 @@ import { SparklesIcon } from "@heroicons/react/24/outline";
 import { SelectMenu } from "@/app/selectmenu";
 import { ImageAreaProps } from "@/types";
 import { models } from "@/config/models";
+import type { ModelId } from "@/lib/models";
+import { ROOMS, STYLES } from "@/lib/prompt-config";
 import { ModelParameters } from "./components/ModelParameters";
 import { AIModel, ModelValues } from "../types";
-import { useHistory } from './context/HistoryContext';
-import { RecentHistory } from './components/RecentHistory';
+import { useHistory } from "./context/HistoryContext";
+import { RecentHistory } from "./components/RecentHistory";
 import { ImageWithActions } from "./components/ImageWithActions";
 import { ExampleImages } from "./components/ExampleImages";
 
@@ -43,54 +45,8 @@ type ImageOutputProps = ImageAreaProps & {
   downloadOutputImage(): void;
 };
 
-const themes = [
-  "Modern",
-  "Vintage",
-  "Minimalist",
-  "Professional",
-  "Industrial",
-  "Scandinavian",
-  "Bohemian",
-  "Contemporary",
-  "Traditional",
-  "Mid-Century Modern",
-  "Coastal",
-  "Rustic",
-  "Art Deco",
-  "Japanese Zen",
-  "Mediterranean"
-];
-
-const rooms = [
-  "Living Room",
-  "Dining Room",
-  "Bedroom",
-  "Bathroom",
-  "Office",
-  "Kitchen",
-  "Master Bedroom",
-  "Kids Room",
-  "Home Theater",
-  "Study Room",
-  "Entryway",
-  "Walk-in Closet",
-  "Game Room",
-  "Home Gym",
-  "Laundry Room",
-  "Patio",
-  "Garden",
-  "Art Studio",
-  "Music Room",
-  "Home Office",
-  "Guest Room",
-  "Nursery",
-  "Home Spa",
-  "Home Bar",
-  "Home Library",
-  "Home Theater",
-  "Home Gym",
-  "Home Spa"
-];
+const themes = STYLES;
+const rooms = ROOMS;
 
 const acceptedFileTypes = {
   "image/jpeg": [".jpeg", ".jpg", ".png"],
@@ -278,6 +234,9 @@ function ImageDropzone(
 /**
  * Display the home page
  */
+const defaultUiModel =
+  models.find((m) => m.apiModelId === "adirik") ?? models[0];
+
 export default function HomePage() {
   const [outputImage, setOutputImage] = useState<string | null>(null);
   const [maskImage, setMaskImage] = useState<string | null>(null);
@@ -287,9 +246,11 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>("");
   const [file, setFile] = useState<File | null>(null);
-  const [selectedModel, setSelectedModel] = useState<AIModel>(models[1]);
+  const [selectedModel, setSelectedModel] = useState<AIModel>(defaultUiModel);
+  const [modelId, setModelId] = useState<ModelId>(defaultUiModel.apiModelId);
   const [modelValues, setModelValues] = useState<ModelValues>({});
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] =
+    useState<boolean>(false);
   const { historyItems, addHistoryItem } = useHistory();
 
   /**
@@ -380,11 +341,11 @@ export default function HomePage() {
     setLoading(true);
 
     const requestBody = {
-      modelId: selectedModel.id,
+      modelId,
       image: base64Image,
       theme,
       room,
-      parameters: modelValues
+      parameters: modelValues,
     };
 
     const response = await fetch("/api/replicate", {
@@ -404,18 +365,15 @@ export default function HomePage() {
       return;
     }
 
-    console.log("🚀 ~ result:", result)
-    const processedOutput = selectedModel.preprocessOutput(result);
-    setOutputImage(processedOutput.output);
-    setMaskImage(processedOutput.mask || null);
+    setOutputImage(result.output);
+    setMaskImage(typeof result.mask === "string" ? result.mask : null);
     setLoading(false);
 
-    console.log("🚀 ~ submitImage ~ processedOutput:", processedOutput)
     // Add to history
-    if (base64Image && processedOutput.output) {
+    if (base64Image && result.output) {
       addHistoryItem({
         inputImage: base64Image,
-        outputImage: processedOutput.output,
+        outputImage: result.output,
         roomType: room,
         theme,
       });
@@ -433,29 +391,29 @@ export default function HomePage() {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const filename = imageUrl.split('/').pop() ?? 'example.jpg';
-      const file = new File([blob], filename, { type: 'image/jpeg' });
-      
+      const filename = imageUrl.split("/").pop() ?? "example.jpg";
+      const file = new File([blob], filename, { type: "image/jpeg" });
+
       setFile(file);
       convertImageToBase64(file);
     } catch (error) {
-      console.error('Error loading example image:', error);
-      setError('Failed to load example image');
+      console.error("Error loading example image:", error);
+      setError("Failed to load example image");
     }
   };
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const imageUrl = e.dataTransfer.getData('text/plain');
-    console.log("🚀 ~ handleDrop ~ imageUrl:", imageUrl)
-    if (imageUrl.startsWith('/assets/')) {
+    const imageUrl = e.dataTransfer.getData("text/plain");
+    console.log("🚀 ~ handleDrop ~ imageUrl:", imageUrl);
+    if (imageUrl.startsWith("/assets/")) {
       handleExampleImageSelect(imageUrl);
     }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = "copy";
   };
 
   return (
@@ -485,17 +443,14 @@ export default function HomePage() {
           <div className="flex">
             <div className="ml-3">
               <p className="text-sm font-medium text-yellow-800">
-                For better results, please use JPG or JPEG images. Some models may not work well with other formats.
+                For better results, please use JPG or JPEG images. Some models
+                may not work well with other formats.
               </p>
             </div>
           </div>
         </div>
 
-        <div 
-          className="mt-6"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
+        <div className="mt-6" onDrop={handleDrop} onDragOver={handleDragOver}>
           {!file && selectedModel.requiresImage ? (
             <ImageDropzone
               title={`Drag 'n drop your image here or click to upload`}
@@ -516,12 +471,13 @@ export default function HomePage() {
         <div className="w-full">
           <SelectMenu
             label="Model"
-            options={models.map(m => m.name)}
+            options={models.map((m) => m.name)}
             selected={selectedModel.name}
             onChange={(name) => {
-              const model = models.find(m => m.name === name);
+              const model = models.find((m) => m.name === name);
               if (model) {
                 setSelectedModel(model);
+                setModelId(model.apiModelId);
                 setModelValues({}); // Reset values when model changes
                 setShowAdvancedOptions(false); // Hide advanced options when model changes
               }
@@ -536,7 +492,9 @@ export default function HomePage() {
               values={modelValues}
               onChange={handleParameterChange}
               showAdvanced={showAdvancedOptions}
-              onToggleAdvanced={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              onToggleAdvanced={() =>
+                setShowAdvancedOptions(!showAdvancedOptions)
+              }
             />
           </div>
         )}
@@ -594,7 +552,9 @@ export default function HomePage() {
           <div className="mt-6">
             <ImageOutput
               title={`AI-generated mask output`}
-              downloadOutputImage={() => saveAs(maskImage as string, "mask.png")}
+              downloadOutputImage={() =>
+                saveAs(maskImage as string, "mask.png")
+              }
               outputImage={maskImage}
               icon={SparklesIcon}
               loading={loading}
