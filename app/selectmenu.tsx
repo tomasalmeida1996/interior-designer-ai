@@ -1,6 +1,13 @@
 import { Fragment } from "react";
 import { classNames } from "@/utils";
-import { Listbox, Transition } from "@headlessui/react";
+import {
+  Listbox,
+  ListboxButton,
+  ListboxLabel,
+  ListboxOption,
+  ListboxOptions,
+  Transition,
+} from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
 type SelectMenuProps = {
@@ -20,11 +27,11 @@ export function SelectMenu({
     <Listbox value={selected} onChange={onChange}>
       {({ open }) => (
         <div className="w-80">
-          <Listbox.Label className="block text-sm font-medium leading-6 text-gray-300">
+          <ListboxLabel className="block text-sm leading-6 font-medium text-gray-300">
             {label}
-          </Listbox.Label>
+          </ListboxLabel>
           <div className="relative mt-2">
-            <Listbox.Button className="relative w-full cursor-default rounded-md py-1.5  pl-3 pr-10 text-left text-gray-300 shadow-sm ring-1 ring-inset ring-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-slate-800 sm:text-sm sm:leading-6">
+            <ListboxButton className="relative w-full cursor-default rounded-md bg-slate-800 py-1.5 pr-10 pl-3 text-left text-gray-300 shadow-sm ring-1 ring-gray-500 ring-inset focus:ring-2 focus:ring-indigo-600 focus:outline-none sm:text-sm sm:leading-6">
               <span className="block truncate">{selected}</span>
               <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                 <ChevronUpDownIcon
@@ -32,7 +39,7 @@ export function SelectMenu({
                   aria-hidden="true"
                 />
               </span>
-            </Listbox.Button>
+            </ListboxButton>
 
             <Transition
               show={open}
@@ -41,19 +48,19 @@ export function SelectMenu({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md py-1 text-gray-300 shadow-lg ring-1 ring-gray-700 bg-slate-800 sm:text-sm">
+              <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-slate-800 py-1 text-gray-300 shadow-lg ring-1 ring-gray-700 sm:text-sm">
                 {options.map((option, index) => (
-                  <Listbox.Option
+                  <ListboxOption
                     key={`${option}_${index}`}
                     value={option}
-                    className={({ active }) =>
+                    className={({ focus }) =>
                       classNames(
-                        active ? "bg-indigo-600 text-white" : "text-gray-300",
-                        "relative cursor-default select-none py-2 pl-8 pr-4"
+                        focus ? "bg-indigo-600 text-white" : "text-gray-300",
+                        "relative cursor-default py-2 pr-4 pl-8 select-none"
                       )
                     }
                   >
-                    {({ selected, active }) => (
+                    {({ selected, focus }) => (
                       <>
                         <span
                           className={classNames(
@@ -67,7 +74,7 @@ export function SelectMenu({
                         {selected ? (
                           <span
                             className={classNames(
-                              active ? "text-white" : "text-indigo-600",
+                              focus ? "text-white" : "text-indigo-600",
                               "absolute inset-y-0 left-0 flex items-center pl-1.5"
                             )}
                           >
@@ -76,9 +83,9 @@ export function SelectMenu({
                         ) : null}
                       </>
                     )}
-                  </Listbox.Option>
+                  </ListboxOption>
                 ))}
-              </Listbox.Options>
+              </ListboxOptions>
             </Transition>
           </div>
         </div>

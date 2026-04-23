@@ -1,5 +1,12 @@
+"use client";
+
 import { Fragment } from "react";
-import { Dialog, Transition } from "@headlessui/react";
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
@@ -15,11 +22,19 @@ interface MobileSidebarProps {
   navigation: NavigationItem[];
 }
 
-export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: MobileSidebarProps) {
+export function MobileSidebar({
+  sidebarOpen,
+  setSidebarOpen,
+  navigation,
+}: MobileSidebarProps) {
   return (
-    <Transition.Root show={sidebarOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50 lg:hidden" onClose={setSidebarOpen}>
-        <Transition.Child
+    <Transition show={sidebarOpen} as={Fragment}>
+      <Dialog
+        as="div"
+        className="relative z-50 lg:hidden"
+        onClose={setSidebarOpen}
+      >
+        <TransitionChild
           as={Fragment}
           enter="transition-opacity ease-linear duration-300"
           enterFrom="opacity-0"
@@ -29,10 +44,10 @@ export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: Mobil
           leaveTo="opacity-0"
         >
           <div className="fixed inset-0 bg-gray-900/80" />
-        </Transition.Child>
+        </TransitionChild>
 
         <div className="fixed inset-0 flex">
-          <Transition.Child
+          <TransitionChild
             as={Fragment}
             enter="transition ease-in-out duration-300 transform"
             enterFrom="-translate-x-full"
@@ -41,8 +56,8 @@ export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: Mobil
             leaveFrom="translate-x-0"
             leaveTo="-translate-x-full"
           >
-            <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
-              <Transition.Child
+            <DialogPanel className="relative mr-16 flex w-full max-w-xs flex-1">
+              <TransitionChild
                 as={Fragment}
                 enter="ease-in-out duration-300"
                 enterFrom="opacity-0"
@@ -51,20 +66,25 @@ export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: Mobil
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
+                <div className="absolute top-0 left-full flex w-16 justify-center pt-5">
                   <button
                     type="button"
                     className="-m-2.5 p-2.5"
                     onClick={() => setSidebarOpen(false)}
                   >
                     <span className="sr-only">Close sidebar</span>
-                    <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                    <XMarkIcon
+                      className="h-6 w-6 text-white"
+                      aria-hidden="true"
+                    />
                   </button>
                 </div>
-              </Transition.Child>
+              </TransitionChild>
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4 ring-1 ring-white/10">
                 <div className="flex h-16 shrink-0 items-center">
-                  <h1 className="text-2xl font-bold text-white">Interior Designer AI</h1>
+                  <h1 className="text-2xl font-bold text-white">
+                    Interior Designer AI
+                  </h1>
                 </div>
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -74,10 +94,12 @@ export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: Mobil
                           <li key={item.name}>
                             <Link
                               href={item.href}
-                              className="group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                              className="group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-400 hover:bg-gray-800 hover:text-white"
                               onClick={() => setSidebarOpen(false)}
                             >
-                              <span className="h-6 w-6 shrink-0">{item.icon}</span>
+                              <span className="h-6 w-6 shrink-0">
+                                {item.icon}
+                              </span>
                               {item.name}
                             </Link>
                           </li>
@@ -87,10 +109,10 @@ export function MobileSidebar({ sidebarOpen, setSidebarOpen, navigation }: Mobil
                   </ul>
                 </nav>
               </div>
-            </Dialog.Panel>
-          </Transition.Child>
+            </DialogPanel>
+          </TransitionChild>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }

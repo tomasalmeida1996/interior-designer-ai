@@ -85,7 +85,7 @@ function ActionPanel({ isLoading, submitImage }: ActionPanelProps) {
       <div className="px-4 py-5 sm:p-6">
         <div className="sm:flex sm:items-start sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold leading-6 text-gray-300 lg:text-xl">
+            <h3 className="text-base leading-6 font-semibold text-gray-300 lg:text-xl">
               Upload a photo or image
             </h3>
             <div className="mt-2 max-w-xl text-sm text-gray-500">
@@ -94,7 +94,7 @@ function ActionPanel({ isLoading, submitImage }: ActionPanelProps) {
               </p>
             </div>
           </div>
-          <div className="mt-5 sm:ml-6 sm:mt-0 sm:flex sm:flex-shrink-0 sm:items-center">
+          <div className="mt-5 sm:mt-0 sm:ml-6 sm:flex sm:flex-shrink-0 sm:items-center">
             <button
               type="button"
               disabled={isDisabled}
@@ -128,13 +128,13 @@ function ImageOutput(props: ImageOutputProps) {
         type="button"
         className={`${
           props.loading ? "flex items-center justify-center" : ""
-        } relative block h-full w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+        } relative block h-full w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none`}
       >
         {!props.outputImage && props.loading ? (
           <span className="flex flex-col items-center">
             <ThreeDots
-              height="50"
-              width="60"
+              height={50}
+              width={60}
               color="#eee"
               ariaLabel="three-dots-loading"
               visible={props.loading}
@@ -174,7 +174,7 @@ function ImageOutput(props: ImageOutputProps) {
 function UploadedImage({ file, image, removeImage }: UploadedImageProps) {
   return (
     <section className="relative min-h-[206px] w-full">
-      <button className="relative block h-full w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+      <button className="relative block h-full w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
         <img
           src={URL.createObjectURL(image)}
           alt={image.name}
@@ -183,13 +183,13 @@ function UploadedImage({ file, image, removeImage }: UploadedImageProps) {
       </button>
 
       <button
-        className="group absolute right-1 top-1 rounded bg-yellow-500 p-2 text-black"
+        className="group absolute top-1 right-1 rounded bg-yellow-500 p-2 text-black"
         onClick={removeImage}
       >
         <FaTrashAlt className="h-4 w-4 duration-300 group-hover:scale-110" />
       </button>
 
-      <div className="text-md absolute left-0 top-0 bg-opacity-50 p-2 pl-3.5 text-white">
+      <div className="text-md bg-opacity-50 absolute top-0 left-0 p-2 pl-3.5 text-white">
         {file.name} ({file.size})
       </div>
     </section>
@@ -218,7 +218,7 @@ function ImageDropzone(
           <button
             {...getRootProps()}
             type="button"
-            className="relative block min-h-[206px] w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="relative block min-h-[206px] w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
           >
             <props.icon className="mx-auto h-12 w-12 text-gray-400" />
             <span className="mt-2 block text-sm font-semibold text-gray-300">
@@ -422,7 +422,7 @@ export default function HomePage() {
 
       <section className="mx-4 lg:mx-6 xl:mx-8">
         <div className="mb-6">
-          <h3 className="text-base font-semibold leading-6 text-gray-300 lg:text-xl">
+          <h3 className="text-base leading-6 font-semibold text-gray-300 lg:text-xl">
             Upload a photo or image
           </h3>
           <div className="mt-2 max-w-xl text-sm text-gray-500">
