@@ -7,6 +7,12 @@ import {
   type GenerateParams,
 } from "@/lib/models";
 
+function toUrlString(val: unknown): string {
+  if (typeof val === "string") return val;
+  if (val != null) return String(val);
+  return "";
+}
+
 export async function POST(request: Request) {
   const req = await request.json();
 
@@ -98,12 +104,12 @@ export async function POST(request: Request) {
     let imageUri: string;
 
     if (modelConfig.outputType === "array" && Array.isArray(output)) {
-      imageUri = output[modelConfig.outputIndex ?? 0];
+      imageUri = toUrlString(output[modelConfig.outputIndex ?? 0]);
     } else if (Array.isArray(output)) {
       // Safety: even if config says "single", handle unexpected arrays
-      imageUri = output[modelConfig.outputIndex ?? 0];
+      imageUri = toUrlString(output[modelConfig.outputIndex ?? 0]);
     } else {
-      imageUri = output as unknown as string;
+      imageUri = toUrlString(output);
     }
 
     let maskUri: string | undefined;
@@ -112,7 +118,7 @@ export async function POST(request: Request) {
       Array.isArray(output) &&
       output[modelConfig.maskOutputIndex] != null
     ) {
-      maskUri = output[modelConfig.maskOutputIndex] as string;
+      maskUri = toUrlString(output[modelConfig.maskOutputIndex]);
     }
 
     return NextResponse.json(

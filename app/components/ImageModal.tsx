@@ -1,6 +1,11 @@
-import { Fragment } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { Fragment } from "react";
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from "@headlessui/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -10,9 +15,9 @@ interface ImageModalProps {
 
 export function ImageModal({ isOpen, onClose, imageUrl }: ImageModalProps) {
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
+        <TransitionChild
           as={Fragment}
           enter="ease-out duration-300"
           enterFrom="opacity-0"
@@ -21,12 +26,12 @@ export function ImageModal({ isOpen, onClose, imageUrl }: ImageModalProps) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-        </Transition.Child>
+          <div className="bg-opacity-75 fixed inset-0 bg-gray-500 transition-opacity" />
+        </TransitionChild>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <Transition.Child
+            <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -35,8 +40,8 @@ export function ImageModal({ isOpen, onClose, imageUrl }: ImageModalProps) {
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
-                <div className="absolute right-0 top-0 pr-4 pt-4">
+              <DialogPanel className="relative transform overflow-hidden rounded-lg bg-gray-800 px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
+                <div className="absolute top-0 right-0 pt-4 pr-4">
                   <button
                     type="button"
                     className="rounded-md bg-gray-800 text-gray-400 hover:text-gray-300 focus:outline-none"
@@ -57,11 +62,11 @@ export function ImageModal({ isOpen, onClose, imageUrl }: ImageModalProps) {
                     </div>
                   </div>
                 </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              </DialogPanel>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>
-    </Transition.Root>
-  )
-} 
+    </Transition>
+  );
+}
